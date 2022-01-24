@@ -63,6 +63,8 @@ contract ArbitrumRootGauge is PremintedGauge {
         uint256 gasLimit = _gasLimit;
         uint256 gasPrice = _gasPrice;
         uint256 maxSubmissionCost = _maxSubmissionCost;
+        uint256 totalBridgeCost = _getTotalBridgeCost(gasLimit, gasPrice, maxSubmissionCost);
+        require(msg.value == totalBridgeCost, "Incorrect msg.value passed");
 
         // After bridging, the BAL should arrive on Arbitrum within 10 minutes. If it
         // does not, the L2 transaction may have failed due to an insufficient amount
@@ -72,7 +74,7 @@ contract ArbitrumRootGauge is PremintedGauge {
         // The calldata for this manual transaction is easily obtained by finding the reverted
         // transaction in the tx history for 0x000000000000000000000000000000000000006e on Arbiscan.
         // https://developer.offchainlabs.com/docs/l1_l2_messages#retryable-transaction-lifecycle
-        _gatewayRouter.outboundTransfer{ value: _getTotalBridgeCost(gasLimit, gasPrice, maxSubmissionCost) }(
+        _gatewayRouter.outboundTransfer{ value: totalBridgeCost }(
             _balToken,
             _recipient,
             mintAmount,
