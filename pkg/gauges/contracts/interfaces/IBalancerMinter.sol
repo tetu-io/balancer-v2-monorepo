@@ -14,9 +14,13 @@
 
 pragma solidity ^0.7.0;
 
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/IERC20.sol";
+
 import "./IGaugeController.sol";
 
 interface IBalancerMinter {
+    function getBalancerToken() external view returns (IERC20);
+
     function getBalancerTokenAdmin() external view returns (address);
 
     function getGaugeController() external view returns (IGaugeController);

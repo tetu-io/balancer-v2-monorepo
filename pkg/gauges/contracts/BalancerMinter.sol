@@ -24,6 +24,7 @@ import "./interfaces/ILiquidityGauge.sol";
 contract BalancerMinter is ReentrancyGuard {
     using SafeMath for uint256;
 
+    IERC20 private immutable _token;
     IBalancerTokenAdmin private immutable _tokenAdmin;
     IGaugeController private immutable _gaugeController;
 
@@ -35,8 +36,16 @@ contract BalancerMinter is ReentrancyGuard {
     mapping(address => mapping(address => bool)) private _allowedMinter;
 
     constructor(IBalancerTokenAdmin tokenAdmin, IGaugeController gaugeController) {
+        _token = tokenAdmin.getBalancerToken();
         _tokenAdmin = tokenAdmin;
         _gaugeController = gaugeController;
+    }
+
+    /**
+     * @notice Returns the address of the Balancer Governance Token
+     */
+    function getBalancerToken() external view returns (IERC20) {
+        return _token;
     }
 
     /**
