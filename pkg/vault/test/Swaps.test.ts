@@ -62,7 +62,7 @@ describe('Swaps', () => {
   sharedBeforeEach('deploy vault and tokens', async () => {
     tokens = await TokenList.create(['DAI', 'MKR', 'SNX', 'WETH']);
 
-    authorizer = await deploy('Authorizer', { args: [admin.address] });
+    authorizer = await deploy('TimelockAuthorizer', { args: [admin.address] });
     vault = await deploy('Vault', { args: [authorizer.address, tokens.WETH.address, 0, 0] });
 
     await tokens.mint({ to: [lp, trader], amount: bn(200e18) });

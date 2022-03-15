@@ -31,7 +31,7 @@ describe('RebalancingRelayer', function () {
     const WETH = await Token.create('WETH');
     tokens = new TokenList([DAI, WETH].sort());
 
-    authorizer = await deploy('v2-vault/Authorizer', { args: [admin.address] });
+    authorizer = await deploy('v2-vault/TimelockAuthorizer', { args: [admin.address] });
     vault = await deploy('v2-vault/Vault', { args: [authorizer.address, tokens.WETH.address, 0, 0] });
     relayer = await deploy('RebalancingRelayer', { args: [vault.address] });
 
