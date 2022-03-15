@@ -40,16 +40,11 @@ import "./interfaces/IAuthorizer.sol";
  *   target contract (where). This identifier is called `permissionId` and is computed as
  *   `keccak256(actionId, account, where)`.
  */
-contract TimelockAuthorizer is IAuthorizer {
+contract TimelockAuthorizer is IAuthorizer, IAuthentication {
     using Address for address;
 
     uint256 public constant MAX_DELAY = 2 * (365 days);
     address public constant EVERYWHERE = address(-1);
-
-    bytes32 public constant GRANT_PERMISSION = keccak256("GRANT_PERMISSION");
-    bytes32 public constant REVOKE_PERMISSION = keccak256("REVOKE_PERMISSION");
-    bytes32 public constant EXECUTE_PERMISSION = keccak256("EXECUTE_PERMISSION");
-    bytes32 public constant SET_DELAY_PERMISSION = keccak256("SET_DELAY_PERMISSION");
 
     struct ScheduledAction {
         address where;
@@ -59,6 +54,11 @@ contract TimelockAuthorizer is IAuthorizer {
         bool protected;
         uint256 executableAt;
     }
+
+    // solhint-disable var-name-mixedcase
+    bytes32 public immutable GRANT_ACTION_ID;
+    bytes32 public immutable REVOKE_ACTION_ID;
+    bytes32 public immutable SCHEDULE_DELAY_ACTION_ID;
 
     ScheduledAction[] public scheduledActions;
     mapping(bytes32 => bool) public isPermissionGranted;
@@ -95,8 +95,19 @@ contract TimelockAuthorizer is IAuthorizer {
     event PermissionRevoked(bytes32 indexed actionId, address indexed account, address indexed where);
 
     constructor(address admin) {
-        _grantPermission(GRANT_PERMISSION, admin, EVERYWHERE);
-        _grantPermission(REVOKE_PERMISSION, admin, EVERYWHERE);
+        GRANT_ACTION_ID = getActionId(TimelockAuthorizer.grantPermissions.selector);
+        REVOKE_ACTION_ID = getActionId(TimelockAuthorizer.revokePermissions.selector);
+        SCHEDULE_DELAY_ACTION_ID = getActionId(TimelockAuthorizer.scheduleDelayChange.selector);
+
+        _grantPermission(getActionId(TimelockAuthorizer.grantPermissions.selector), admin, EVERYWHERE);
+        _grantPermission(getActionId(TimelockAuthorizer.revokePermissions.selector), admin, EVERYWHERE);
+    }
+
+    /**
+     * @dev Tells the action ID for a certain function selector
+     */
+    function getActionId(bytes4 selector) public view override returns (bytes32) {
+        return keccak256(abi.encodePacked(bytes32(uint256(address(this))), selector));
     }
 
     /**
@@ -152,12 +163,12 @@ contract TimelockAuthorizer is IAuthorizer {
         address[] memory executors
     ) external returns (uint256 scheduledActionId) {
         require(newDelay <= MAX_DELAY, "DELAY_TOO_LARGE");
-        bytes32 setDelayAction = keccak256(abi.encodePacked(SET_DELAY_PERMISSION, actionId));
-        _require(hasPermission(setDelayAction, msg.sender, address(this)), Errors.SENDER_NOT_ALLOWED);
+        bytes32 scheduleDelayActionId = keccak256(abi.encodePacked(SCHEDULE_DELAY_ACTION_ID, actionId));
+        _require(hasPermission(scheduleDelayActionId, msg.sender, address(this)), Errors.SENDER_NOT_ALLOWED);
 
         uint256 actionDelay = delaysPerActionId[actionId];
         bytes memory data = abi.encodeWithSelector(this.setDelay.selector, actionId, newDelay);
-        return _scheduleWithDelay(setDelayAction, address(this), data, actionDelay, executors);
+        return _scheduleWithDelay(scheduleDelayActionId, address(this), data, actionDelay, executors);
     }
 
     /**
@@ -185,11 +196,9 @@ contract TimelockAuthorizer is IAuthorizer {
 
         // solhint-disable-next-line not-rely-on-time
         require(block.timestamp >= scheduledAction.executableAt, "ACTION_NOT_EXECUTABLE");
-        _require(
-            !scheduledAction.protected ||
-                hasPermission(_getExecuteActionId(scheduledActionId), msg.sender, address(this)),
-            Errors.SENDER_NOT_ALLOWED
-        );
+        bytes32 executeActionId = _getExecuteActionId(scheduledActionId);
+        bool isAllowed = !scheduledAction.protected || hasPermission(executeActionId, msg.sender, address(this));
+        _require(isAllowed, Errors.SENDER_NOT_ALLOWED);
 
         scheduledAction.executed = true;
         result = scheduledAction.where.functionCall(scheduledAction.data);
@@ -223,7 +232,7 @@ contract TimelockAuthorizer is IAuthorizer {
     ) external {
         InputHelpers.ensureInputLengthMatch(actionIds.length, where.length);
         for (uint256 i = 0; i < actionIds.length; i++) {
-            _require(canPerform(GRANT_PERMISSION, msg.sender, where[i]), Errors.SENDER_NOT_ALLOWED);
+            _require(canPerform(GRANT_ACTION_ID, msg.sender, where[i]), Errors.SENDER_NOT_ALLOWED);
             _grantPermission(actionIds[i], account, where[i]);
         }
     }
@@ -237,9 +246,9 @@ contract TimelockAuthorizer is IAuthorizer {
         address where,
         address[] memory executors
     ) external returns (uint256 scheduledActionId) {
-        _require(hasPermission(GRANT_PERMISSION, msg.sender, where), Errors.SENDER_NOT_ALLOWED);
+        _require(hasPermission(GRANT_ACTION_ID, msg.sender, where), Errors.SENDER_NOT_ALLOWED);
         bytes memory data = abi.encodeWithSelector(this.grantPermissions.selector, _ar(actionId), account, _ar(where));
-        return _schedule(GRANT_PERMISSION, address(this), data, executors);
+        return _schedule(GRANT_ACTION_ID, address(this), data, executors);
     }
 
     /**
@@ -252,7 +261,7 @@ contract TimelockAuthorizer is IAuthorizer {
     ) external {
         InputHelpers.ensureInputLengthMatch(actionIds.length, where.length);
         for (uint256 i = 0; i < actionIds.length; i++) {
-            _require(canPerform(REVOKE_PERMISSION, msg.sender, where[i]), Errors.SENDER_NOT_ALLOWED);
+            _require(canPerform(REVOKE_ACTION_ID, msg.sender, where[i]), Errors.SENDER_NOT_ALLOWED);
             _revokePermission(actionIds[i], account, where[i]);
         }
     }
@@ -266,9 +275,9 @@ contract TimelockAuthorizer is IAuthorizer {
         address where,
         address[] memory executors
     ) external returns (uint256 scheduledActionId) {
-        _require(hasPermission(REVOKE_PERMISSION, msg.sender, where), Errors.SENDER_NOT_ALLOWED);
+        _require(hasPermission(REVOKE_ACTION_ID, msg.sender, where), Errors.SENDER_NOT_ALLOWED);
         bytes memory data = abi.encodeWithSelector(this.revokePermissions.selector, _ar(actionId), account, _ar(where));
-        return _schedule(REVOKE_PERMISSION, address(this), data, executors);
+        return _schedule(REVOKE_ACTION_ID, address(this), data, executors);
     }
 
     /**
@@ -337,8 +346,8 @@ contract TimelockAuthorizer is IAuthorizer {
         }
     }
 
-    function _getExecuteActionId(uint256 scheduledActionId) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(EXECUTE_PERMISSION, scheduledActionId));
+    function _getExecuteActionId(uint256 scheduledActionId) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(bytes32(uint256(address(this))), this.execute.selector, scheduledActionId));
     }
 
     function _decodeSelector(bytes memory data) internal pure returns (bytes4) {

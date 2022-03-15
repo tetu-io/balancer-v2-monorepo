@@ -33,12 +33,16 @@ export default class TimelockAuthorizer {
     return this.instance.interface;
   }
 
-  async GRANT_PERMISSION(): Promise<string> {
-    return this.instance.GRANT_PERMISSION();
+  async GRANT_ACTION_ID(): Promise<string> {
+    return this.instance.GRANT_ACTION_ID();
   }
 
-  async REVOKE_PERMISSION(): Promise<string> {
-    return this.instance.REVOKE_PERMISSION();
+  async REVOKE_ACTION_ID(): Promise<string> {
+    return this.instance.REVOKE_ACTION_ID();
+  }
+
+  async SCHEDULE_DELAY_ACTION_ID(): Promise<string> {
+    return this.instance.SCHEDULE_DELAY_ACTION_ID();
   }
 
   async permissionId(action: string, account: Account, where: Account): Promise<string> {
