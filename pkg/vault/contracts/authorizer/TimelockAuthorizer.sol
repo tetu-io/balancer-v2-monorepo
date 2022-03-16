@@ -19,7 +19,7 @@ import "@balancer-labs/v2-solidity-utils/contracts/helpers/InputHelpers.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/BalancerErrors.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/IAuthentication.sol";
 
-import "./interfaces/IAuthorizer.sol";
+import "../interfaces/IAuthorizer.sol";
 
 /**
  * @dev Basic Authorizer implementation using timelocks.
