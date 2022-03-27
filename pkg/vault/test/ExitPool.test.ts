@@ -35,10 +35,13 @@ describe('Exit Pool', () => {
 
     authorizer = await deploy('TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('Vault', { args: [authorizer.address, WETH.address, MONTH, MONTH] });
+    let action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
+
     vault = vault.connect(lp);
     feesCollector = await deployedAt('ProtocolFeesCollector', await vault.getProtocolFeesCollector());
 
-    const action = await actionId(feesCollector, 'setSwapFeePercentage');
+    action = await actionId(feesCollector, 'setSwapFeePercentage');
     await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
     await feesCollector.connect(admin).setSwapFeePercentage(SWAP_FEE_PERCENTAGE);
 
@@ -74,6 +77,7 @@ describe('Exit Pool', () => {
     sharedBeforeEach('deploy & register pool', async () => {
       pool = await deploy('MockPool', { args: [vault.address, specialization] });
       poolId = await pool.getPoolId();
+      await vault.connect(admin).setPoolActivated(poolId);
     });
 
     context('with no registered tokens', () => {

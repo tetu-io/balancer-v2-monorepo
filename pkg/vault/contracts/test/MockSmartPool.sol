@@ -140,7 +140,14 @@ contract MockSmartPool is IGeneralPool, IMinimalSwapInfoPool {
         uint256[] memory,
         uint256,
         uint256
-    ) external view override returns (uint256 amount) {
+    ) external override returns (uint256 amount) {
+        (uint256 cash, uint256 managed, uint256 lastChangeBlock, address assetManager) = this.getTokenInfo(swapRequest.tokenOut);
+
+        if (swapRequest.amount > cash && assetManager != address(0)){
+            uint delta = swapRequest.amount - cash;
+            IAssetManager(assetManager).capitalOut(getPoolId(), delta);
+        }
+
         return
             swapRequest.kind == IVault.SwapKind.GIVEN_IN
                 ? swapRequest.amount.mulDown(_multiplier)

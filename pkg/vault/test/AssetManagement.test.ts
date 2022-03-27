@@ -33,6 +33,8 @@ describe('Asset Management', function () {
   sharedBeforeEach('deploy vault', async () => {
     authorizer = await deploy('TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('Vault', { args: [authorizer.address, ZERO_ADDRESS, MONTH, MONTH] });
+    const action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
   });
 
   context('with general pool', () => {
@@ -96,6 +98,7 @@ describe('Asset Management', function () {
       sharedBeforeEach('deploy pool', async () => {
         pool = await deploy('MockPool', { args: [vault.address, specialization] });
         poolId = await pool.getPoolId();
+        await vault.connect(admin).setPoolActivated(poolId);
       });
 
       context('with unregistered token', () => {
@@ -694,9 +697,11 @@ describe('Asset Management', function () {
 
             sharedBeforeEach('deploy other pool and add liquidity', async () => {
               poolIdA = poolId;
+              await vault.connect(admin).setPoolActivated(poolIdA);
 
               const otherPool = await deploy('MockPool', { args: [vault.address, specialization] });
               poolIdB = await otherPool.getPoolId();
+              await vault.connect(admin).setPoolActivated(poolIdB);
 
               // Manage all tokens in Pool B
               const assetManagers = tokens.addresses.map(() => assetManager.address);

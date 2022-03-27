@@ -1,6 +1,5 @@
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
-import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import { encodeJoin } from '@balancer-labs/v2-helpers/src/models/pools/mockPool';
@@ -11,9 +10,11 @@ import { deploy } from '@balancer-labs/v2-helpers/src/contract';
 import { PoolSpecialization } from '@balancer-labs/balancer-js';
 import { MAX_UINT112, MAX_UINT256, ZERO_ADDRESS } from '@balancer-labs/v2-helpers/src/constants';
 import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
+import { actionId } from '@balancer-labs/v2-helpers/src/models/misc/actions';
+import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
 
 describe('Swap Queries', () => {
-  let vault: Contract, funds: FundManagement;
+  let vault: Vault, funds: FundManagement;
   let tokens: TokenList;
   let lp: SignerWithAddress;
   const poolIds: string[] = [];
@@ -24,20 +25,25 @@ describe('Swap Queries', () => {
     [, lp] = await ethers.getSigners();
 
     // All of the tests in this suite have no side effects, so we deploy and initially contracts only one to save time
-    vault = await deploy('Vault', { args: [ZERO_ADDRESS, ZERO_ADDRESS, 0, 0] });
+    // vault = await deploy('Vault', { args: [ZERO_ADDRESS, ZERO_ADDRESS, 0, 0] });
+    vault = await Vault.create();
+
+    const action = await actionId(vault.instance, 'setPoolActivated');
+    await vault.grantPermissionsGlobally([action]);
 
     tokens = await TokenList.create(['DAI', 'MKR', 'SNX'], { sorted: true });
     await tokens.mint({ to: lp, amount: MAX_UINT112.div(2) });
     await tokens.approve({ to: vault, amount: MAX_UINT112, from: lp });
 
     for (let i = 0; i < MAX_POOLS; ++i) {
-      const pool = await deploy('MockPool', { args: [vault.address, PoolSpecialization.MinimalSwapInfoPool] });
+      const pool = await deploy('MockSmartPool', { args: [vault.address, PoolSpecialization.MinimalSwapInfoPool] });
       const poolId = await pool.getPoolId();
+      await vault.instance.setPoolActivated(poolId);
 
       await pool.setMultiplier(fp(2));
       await pool.registerTokens(tokens.addresses, Array(tokens.length).fill(ZERO_ADDRESS));
 
-      await vault.connect(lp).joinPool(poolId, lp.address, lp.address, {
+      await vault.instance.connect(lp).joinPool(poolId, lp.address, lp.address, {
         assets: tokens.addresses,
         maxAmountsIn: Array(tokens.length).fill(MAX_UINT256),
         fromInternalBalance: false,
@@ -78,7 +84,7 @@ describe('Swap Queries', () => {
     function assertQueryBatchSwapGivenIn(swapsData: SwapData[], expectedDeltas: number[]) {
       it('returns the expected amounts', async () => {
         const swaps: BatchSwapStep[] = toSwaps(swapsData);
-        const deltas = await vault.queryBatchSwap(SwapKind.GivenIn, swaps, tokens.addresses, funds);
+        const deltas = await vault.instance.queryBatchSwap(SwapKind.GivenIn, swaps, tokens.addresses, funds);
         expect(deltas).to.deep.equal(expectedDeltas.map(bn));
       });
     }
@@ -142,7 +148,7 @@ describe('Swap Queries', () => {
         const invalidSwap: BatchSwapStep[] = toSwaps([
           { poolIdIndex: 0, assetInIndex: 100, assetOutIndex: 1, amount: 5 },
         ]);
-        const tx = vault.queryBatchSwap(SwapKind.GivenIn, invalidSwap, tokens.addresses, funds);
+        const tx = vault.instance.queryBatchSwap(SwapKind.GivenIn, invalidSwap, tokens.addresses, funds);
         await expect(tx).to.be.revertedWith('OUT_OF_BOUNDS');
       });
     });
@@ -153,7 +159,7 @@ describe('Swap Queries', () => {
       it('returns the expected amounts', async () => {
         const swaps: BatchSwapStep[] = toSwaps(swapsData);
 
-        const deltas = await vault.queryBatchSwap(SwapKind.GivenOut, swaps, tokens.addresses, funds);
+        const deltas = await vault.instance.queryBatchSwap(SwapKind.GivenOut, swaps, tokens.addresses, funds);
         expect(deltas).to.deep.equal(expectedDeltas.map(bn));
       });
     }
@@ -217,7 +223,7 @@ describe('Swap Queries', () => {
         const invalidSwap: BatchSwapStep[] = toSwaps([
           { poolIdIndex: 0, assetInIndex: 100, assetOutIndex: 1, amount: 5 },
         ]);
-        const tx = vault.queryBatchSwap(SwapKind.GivenOut, invalidSwap, tokens.addresses, funds);
+        const tx = vault.instance.queryBatchSwap(SwapKind.GivenOut, invalidSwap, tokens.addresses, funds);
         await expect(tx).to.be.revertedWith('OUT_OF_BOUNDS');
       });
     });

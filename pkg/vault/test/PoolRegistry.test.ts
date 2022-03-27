@@ -10,10 +10,11 @@ import { encodeExit, encodeJoin } from '@balancer-labs/v2-helpers/src/models/poo
 import { bn } from '@balancer-labs/v2-helpers/src/numbers';
 import { MONTH } from '@balancer-labs/v2-helpers/src/time';
 import { deploy } from '@balancer-labs/v2-helpers/src/contract';
-import { MAX_UINT256, ZERO_ADDRESS, ZERO_BYTES32 } from '@balancer-labs/v2-helpers/src/constants';
+import { ANY_ADDRESS, MAX_UINT256, ZERO_ADDRESS, ZERO_BYTES32 } from '@balancer-labs/v2-helpers/src/constants';
 import { PoolSpecialization } from '@balancer-labs/balancer-js';
 import TokensDeployer from '@balancer-labs/v2-helpers/src/models/tokens/TokensDeployer';
 import { lastBlockNumber } from '@balancer-labs/v2-helpers/src/time';
+import { actionId } from "@balancer-labs/v2-helpers/src/models/misc/actions";
 
 describe('PoolRegistry', () => {
   let admin: SignerWithAddress, lp: SignerWithAddress, other: SignerWithAddress;
@@ -29,6 +30,8 @@ describe('PoolRegistry', () => {
 
     authorizer = await deploy('TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('Vault', { args: [authorizer.address, weth.address, 0, 0] });
+    const action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
 
     allTokens = await TokenList.create(['DAI', 'MKR', 'SNX'], { sorted: true });
     await allTokens.mint({ to: lp, amount: 50000 });
@@ -62,6 +65,7 @@ describe('PoolRegistry', () => {
 
       const event = expectEvent.inReceipt(receipt, 'PoolRegistered');
       poolId = event.args.poolId;
+      await vault.connect(admin).setPoolActivated(poolId);
     });
 
     it('has an address and an specialization setting', async () => {
@@ -97,7 +101,7 @@ describe('PoolRegistry', () => {
 
         const event = expectEvent.inReceipt(receipt, 'PoolRegistered');
         poolId = event.args.poolId;
-
+        await vault.connect(admin).setPoolActivated(poolId);
         const assetManagers = [ZERO_ADDRESS, ZERO_ADDRESS];
 
         await vault
@@ -143,6 +147,7 @@ describe('PoolRegistry', () => {
           sharedBeforeEach('create pool', async () => {
             pool = await deploy('MockPool', { args: [vault.address, specialization] });
             poolId = await pool.getPoolId();
+            await vault.connect(admin).setPoolActivated(poolId);
           });
 
           context('when the sender is the pool', () => {
@@ -294,6 +299,7 @@ describe('PoolRegistry', () => {
           sharedBeforeEach('create pool', async () => {
             pool = await deploy('MockPool', { args: [vault.address, specialization] });
             poolId = await pool.getPoolId();
+            await vault.connect(admin).setPoolActivated(poolId);
           });
 
           context('when the sender is the pool', () => {

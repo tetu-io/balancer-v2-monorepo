@@ -66,6 +66,9 @@ describe('Swaps', () => {
     authorizer = await deploy('TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('Vault', { args: [authorizer.address, tokens.WETH.address, 0, 0] });
 
+    const action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
+
     await tokens.mint({ to: [lp, trader], amount: bn(200e18) });
     await tokens.approve({ to: vault, from: [lp, trader], amount: MAX_UINT112 });
   });
@@ -376,7 +379,7 @@ describe('Swaps', () => {
   }
 
   async function deployPool(specialization: PoolSpecialization, tokenSymbols: string[]): Promise<string> {
-    const pool = await deploy('MockPool', { args: [vault.address, specialization] });
+    const pool = await deploy('MockSmartPool', { args: [vault.address, specialization] });
     await pool.setMultiplier(fp(2));
 
     // Register tokens
@@ -386,13 +389,14 @@ describe('Swaps', () => {
       .map((token) => token.address);
 
     const assetManagers = sortedTokenAddresses.map(() => ZERO_ADDRESS);
+    const poolId = await pool.getPoolId();
+    await vault.connect(admin).setPoolActivated(poolId);
 
     await pool.connect(lp).registerTokens(sortedTokenAddresses, assetManagers);
 
     // Join the pool - the actual amount is not relevant since the MockPool relies on the multiplier to calculate prices
     const tokenAmounts = sortedTokenAddresses.map(() => poolInitialBalance);
 
-    const poolId = pool.getPoolId();
     await vault.connect(lp).joinPool(poolId, lp.address, other.address, {
       assets: sortedTokenAddresses,
       maxAmountsIn: tokenAmounts,
