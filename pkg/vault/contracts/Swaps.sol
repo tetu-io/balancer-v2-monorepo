@@ -435,14 +435,8 @@ abstract contract Swaps is ReentrancyGuard, PoolBalances {
         amountCalculated = pool.onSwap(request, currentBalances, indexIn, indexOut);
 
         // pool can sent token to vault from an Asset manager thus we need to refresh token balances
-        for (uint256 i = 0; i < tokenAmount; i++) {
-            bytes32 balance = poolBalances.unchecked_valueAt(i);
-            if (i == indexIn) {
-                tokenInBalance = balance;
-            } else if (i == indexOut) {
-                tokenOutBalance = balance;
-            }
-        }
+        tokenInBalance = poolBalances.unchecked_valueAt(indexIn);
+        tokenOutBalance = poolBalances.unchecked_valueAt(indexOut);
 
         (uint256 amountIn, uint256 amountOut) = _getAmounts(request.kind, request.amount, amountCalculated);
         tokenInBalance = tokenInBalance.increaseCash(amountIn);

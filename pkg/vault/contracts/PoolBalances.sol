@@ -194,8 +194,7 @@ abstract contract PoolBalances is Fees, ReentrancyGuard, PoolTokens, UserBalance
             );
 
         // need to update balances as Asset manager could update values
-        IERC20[] memory tokens = _translateToIERC20(change.assets);
-        balances = _validateTokensAndGetBalances(poolId, tokens);
+        (, balances) = _getPoolTokens(poolId);
 
         InputHelpers.ensureInputLengthMatch(balances.length, amountsInOrOut.length, dueProtocolFeeAmounts.length);
 

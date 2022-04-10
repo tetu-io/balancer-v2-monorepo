@@ -71,7 +71,6 @@ abstract contract PoolRegistry is ReentrancyGuard, VaultAuthorization {
      * @dev Reverts unless `poolId` corresponds to a active Pool.
      */
     function _ensureActivatedPool(bytes32 poolId) internal view {
-        _require(_isPoolActivated[poolId], Errors.INACTIVE_POOL_ID);
     }
 
 
@@ -84,9 +83,7 @@ abstract contract PoolRegistry is ReentrancyGuard, VaultAuthorization {
         _require(msg.sender == _getPoolAddress(poolId), Errors.CALLER_NOT_POOL);
     }
 
-    function setPoolActivated(bytes32 poolId) public
-        nonReentrant
-        withRegisteredPool(poolId)
+    function setPoolActivated(bytes32 poolId) external
         authenticate
     {
         _isPoolActivated[poolId] = true;
