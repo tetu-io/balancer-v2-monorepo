@@ -230,6 +230,7 @@ library Errors {
     uint256 internal constant POOL_NO_TOKENS = 527;
     uint256 internal constant INSUFFICIENT_FLASH_LOAN_BALANCE = 528;
     uint256 internal constant INACTIVE_POOL_ID = 529;
+    uint256 internal constant SENDER_NOT_ASSET_MANAGER_OR_TOKEN_NOT_REGISTERED = 530;
 
     // Fees
     uint256 internal constant SWAP_FEE_PERCENTAGE_TOO_HIGH = 600;

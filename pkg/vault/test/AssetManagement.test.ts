@@ -114,7 +114,7 @@ describe('Asset Management', function () {
           it('reverts', async () => {
             await expect(
               vault.connect(other).managePoolBalance([{ kind, poolId, token, amount: 0 }])
-            ).to.be.revertedWith('TOKEN_NOT_REGISTERED');
+            ).to.be.revertedWith('BAL#530');
           });
         });
 
@@ -124,7 +124,7 @@ describe('Asset Management', function () {
           it('reverts', async () => {
             await expect(
               vault.connect(other).managePoolBalance([{ kind, poolId, token, amount: 0 }])
-            ).to.be.revertedWith('TOKEN_NOT_REGISTERED');
+            ).to.be.revertedWith('BAL#530');
           });
         });
 
@@ -134,7 +134,7 @@ describe('Asset Management', function () {
           it('reverts', async () => {
             await expect(
               vault.connect(other).managePoolBalance([{ kind, poolId, token, amount: 0 }])
-            ).to.be.revertedWith('TOKEN_NOT_REGISTERED');
+            ).to.be.revertedWith('BAL#530');
           });
         });
       });
@@ -336,7 +336,9 @@ describe('Asset Management', function () {
 
             it('reverts', async () => {
               const ops = [{ kind, poolId, token: tokens.DAI.address, amount: bn(0) }];
-              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SENDER_NOT_ASSET_MANAGER');
+              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith(
+                'BAL#530'
+              );
             });
           });
         });
@@ -462,7 +464,9 @@ describe('Asset Management', function () {
 
             it('reverts', async () => {
               const ops = [{ kind, poolId, token: tokens.DAI.address, amount: bn(0) }];
-              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SENDER_NOT_ASSET_MANAGER');
+              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith(
+                'BAL#530'
+              );
             });
           });
         });
@@ -622,7 +626,9 @@ describe('Asset Management', function () {
 
             it('reverts', async () => {
               const ops = [{ kind, poolId, token: tokens.DAI.address, amount: bn(0) }];
-              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SENDER_NOT_ASSET_MANAGER');
+              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith(
+                'BAL#530'
+              );
             });
           });
         });
@@ -670,7 +676,7 @@ describe('Asset Management', function () {
                 ];
 
                 await expect(vault.connect(assetManager).managePoolBalance(ops)).to.be.revertedWith(
-                  'SENDER_NOT_ASSET_MANAGER'
+                  'BAL#530'
                 );
               });
             });
@@ -685,7 +691,7 @@ describe('Asset Management', function () {
                 ];
 
                 await expect(vault.connect(assetManager).managePoolBalance(ops)).to.be.revertedWith(
-                  'TOKEN_NOT_REGISTERED'
+                  'BAL#530'
                 );
               });
             });
@@ -828,7 +834,7 @@ describe('Asset Management', function () {
                 ];
 
                 await expect(vault.connect(assetManager).managePoolBalance(ops)).to.be.revertedWith(
-                  'SENDER_NOT_ASSET_MANAGER'
+                  'BAL#530'
                 );
               });
             });
