@@ -108,7 +108,7 @@ contract MockSmartPool is IGeneralPool, IMinimalSwapInfoPool {
 
         (IERC20[] memory tokens,,) = this.getPoolTokes();
 
-        (uint256 cash, uint256 managed, uint256 lastChangeBlock, address assetManager) = this.getTokenInfo(tokens[0]);
+        (uint256 cash,,, address assetManager) = this.getTokenInfo(tokens[0]);
 
         if (amountsOut[0] > cash){
             uint delta = amountsOut[0] - cash;
@@ -141,7 +141,7 @@ contract MockSmartPool is IGeneralPool, IMinimalSwapInfoPool {
         uint256,
         uint256
     ) external override returns (uint256 amount) {
-        (uint256 cash, uint256 managed, uint256 lastChangeBlock, address assetManager) = this.getTokenInfo(swapRequest.tokenOut);
+        (uint256 cash,,, address assetManager) = this.getTokenInfo(swapRequest.tokenOut);
 
         if (swapRequest.amount > cash && assetManager != address(0)){
             uint delta = swapRequest.amount - cash;
