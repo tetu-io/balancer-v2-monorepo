@@ -80,7 +80,6 @@ abstract contract PoolRegistry is ReentrancyGuard, VaultAuthorization {
      */
     function _ensurePoolIsSender(bytes32 poolId) private view {
         _ensureRegisteredPool(poolId);
-        _ensureActivatedPool(poolId);
         _require(msg.sender == _getPoolAddress(poolId), Errors.CALLER_NOT_POOL);
     }
 
@@ -118,7 +117,6 @@ abstract contract PoolRegistry is ReentrancyGuard, VaultAuthorization {
         view
         override
         withRegisteredPool(poolId)
-        withActivatedPool(poolId)
         returns (address, PoolSpecialization)
     {
         return (_getPoolAddress(poolId), _getPoolSpecialization(poolId));
