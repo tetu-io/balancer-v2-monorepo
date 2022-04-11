@@ -36,6 +36,8 @@ describe('RebalancingRelayer', function () {
     authorizer = await deploy('v2-vault/TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('v2-vault/Vault', { args: [authorizer.address, tokens.WETH.address, 0, 0] });
     relayer = await deploy('RebalancingRelayer', { args: [vault.address] });
+    const action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
 
     await tokens.mint({ to: sender, amount: fp(100) });
     await tokens.approve({ to: vault, amount: fp(100), from: sender });
@@ -64,6 +66,8 @@ describe('RebalancingRelayer', function () {
     });
 
     poolId = await pool.getPoolId();
+    await vault.connect(admin).setPoolActivated(poolId);
+
     await Promise.all(assetManagers.map((assetManager) => assetManager.initialize(poolId)));
   });
 
