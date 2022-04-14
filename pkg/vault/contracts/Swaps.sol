@@ -403,6 +403,7 @@ abstract contract Swaps is ReentrancyGuard, PoolBalances {
             // The tokens might not be registered because the Pool itself is not registered. We check this to provide a
             // more accurate revert reason.
             _ensureRegisteredPool(request.poolId);
+            _ensureActivatedPool(request.poolId);
             _revert(Errors.TOKEN_NOT_REGISTERED);
         }
 
@@ -432,6 +433,11 @@ abstract contract Swaps is ReentrancyGuard, PoolBalances {
 
         // Perform the swap request callback and compute the new balances for 'token in' and 'token out' after the swap
         amountCalculated = pool.onSwap(request, currentBalances, indexIn, indexOut);
+
+        // pool can sent token to vault from an Asset manager thus we need to refresh token balances
+        tokenInBalance = poolBalances.unchecked_valueAt(indexIn);
+        tokenOutBalance = poolBalances.unchecked_valueAt(indexOut);
+
         (uint256 amountIn, uint256 amountOut) = _getAmounts(request.kind, request.amount, amountCalculated);
         tokenInBalance = tokenInBalance.increaseCash(amountIn);
         tokenOutBalance = tokenOutBalance.decreaseCash(amountOut);

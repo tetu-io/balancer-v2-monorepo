@@ -121,7 +121,6 @@ abstract contract PoolBalances is Fees, ReentrancyGuard, PoolTokens, UserBalance
         // current balance for each.
         IERC20[] memory tokens = _translateToIERC20(change.assets);
         bytes32[] memory balances = _validateTokensAndGetBalances(poolId, tokens);
-
         // The bulk of the work is done here: the corresponding Pool hook is called, its final balances are computed,
         // assets are transferred, and fees are paid.
         (
@@ -193,6 +192,9 @@ abstract contract PoolBalances is Fees, ReentrancyGuard, PoolTokens, UserBalance
                 _getProtocolSwapFeePercentage(),
                 change.userData
             );
+
+        // need to update balances as Asset manager could update values
+        (, balances) = _getPoolTokens(poolId);
 
         InputHelpers.ensureInputLengthMatch(balances.length, amountsInOrOut.length, dueProtocolFeeAmounts.length);
 

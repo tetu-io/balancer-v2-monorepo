@@ -30,9 +30,12 @@ describe('Swap Validation', () => {
   sharedBeforeEach('setup', async () => {
     const WETH = await TokensDeployer.deployToken({ symbol: 'WETH' });
 
-    authorizer = await deploy('Authorizer', { args: [admin.address, ZERO_ADDRESS] });
+    authorizer = await deploy('TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('Vault', { args: [authorizer.address, WETH.address, MONTH, MONTH] });
     tokens = await TokenList.create(['DAI', 'MKR', 'SNX', 'BAT'], { sorted: true });
+
+    const action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
 
     const totalPools = 5;
     const initialBalance = bn(100e18);
@@ -48,9 +51,9 @@ describe('Swap Validation', () => {
     for (let i = 0; i < totalPools; ++i) {
       // The Pool specialization setting does not affect validation
       const pool = await deploy('MockPool', { args: [vault.address, PoolSpecialization.GeneralPool] });
-      await pool.registerTokens(tokens.addresses, Array(tokens.length).fill(ZERO_ADDRESS));
-
       const poolId = await pool.getPoolId();
+      await vault.connect(admin).setPoolActivated(poolId);
+      await pool.registerTokens(tokens.addresses, Array(tokens.length).fill(ZERO_ADDRESS));
 
       await vault.connect(lp).joinPool(poolId, lp.address, ZERO_ADDRESS, {
         assets: tokens.addresses,

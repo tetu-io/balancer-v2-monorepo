@@ -14,6 +14,7 @@ import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
 import { expectBalanceChange } from '@balancer-labs/v2-helpers/src/test/tokenBalance';
 import { bn, fp, FP_SCALING_FACTOR } from '@balancer-labs/v2-helpers/src/numbers';
 import { calcRebalanceAmount, encodeInvestmentConfig } from './helpers/rebalance';
+import {actionId} from "@balancer-labs/v2-helpers/src/models/misc/actions";
 
 const tokenInitialBalance = bn(200e18);
 
@@ -24,10 +25,13 @@ const setup = async () => {
 
   // Deploy Balancer Vault
   const vault = await Vault.create();
+  const action = await actionId(vault.instance, 'setPoolActivated');
+  await vault.grantPermissionsGlobally([action]);
 
   // Deploy Pool
   const pool = await deploy('MockAssetManagedPool', { args: [vault.address, PoolSpecialization.GeneralPool] });
   const poolId = await pool.getPoolId();
+  await vault.instance.setPoolActivated(poolId);
 
   // Deploy Asset manager
   const assetManager = await deploy('MockRewardsAssetManager', {

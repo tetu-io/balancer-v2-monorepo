@@ -31,8 +31,10 @@ describe('Asset Management', function () {
   });
 
   sharedBeforeEach('deploy vault', async () => {
-    authorizer = await deploy('Authorizer', { args: [admin.address, ZERO_ADDRESS] });
+    authorizer = await deploy('TimelockAuthorizer', { args: [admin.address, ZERO_ADDRESS, MONTH] });
     vault = await deploy('Vault', { args: [authorizer.address, ZERO_ADDRESS, MONTH, MONTH] });
+    const action = await actionId(vault, 'setPoolActivated');
+    await authorizer.connect(admin).grantPermissions([action], admin.address, [ANY_ADDRESS]);
   });
 
   context('with general pool', () => {
@@ -96,6 +98,7 @@ describe('Asset Management', function () {
       sharedBeforeEach('deploy pool', async () => {
         pool = await deploy('MockPool', { args: [vault.address, specialization] });
         poolId = await pool.getPoolId();
+        await vault.connect(admin).setPoolActivated(poolId);
       });
 
       context('with unregistered token', () => {
@@ -111,7 +114,7 @@ describe('Asset Management', function () {
           it('reverts', async () => {
             await expect(
               vault.connect(other).managePoolBalance([{ kind, poolId, token, amount: 0 }])
-            ).to.be.revertedWith('TOKEN_NOT_REGISTERED');
+            ).to.be.revertedWith('BAL#530');
           });
         });
 
@@ -121,7 +124,7 @@ describe('Asset Management', function () {
           it('reverts', async () => {
             await expect(
               vault.connect(other).managePoolBalance([{ kind, poolId, token, amount: 0 }])
-            ).to.be.revertedWith('TOKEN_NOT_REGISTERED');
+            ).to.be.revertedWith('BAL#530');
           });
         });
 
@@ -131,7 +134,7 @@ describe('Asset Management', function () {
           it('reverts', async () => {
             await expect(
               vault.connect(other).managePoolBalance([{ kind, poolId, token, amount: 0 }])
-            ).to.be.revertedWith('TOKEN_NOT_REGISTERED');
+            ).to.be.revertedWith('BAL#530');
           });
         });
       });
@@ -333,7 +336,9 @@ describe('Asset Management', function () {
 
             it('reverts', async () => {
               const ops = [{ kind, poolId, token: tokens.DAI.address, amount: bn(0) }];
-              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SENDER_NOT_ASSET_MANAGER');
+              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith(
+                'BAL#530'
+              );
             });
           });
         });
@@ -459,7 +464,9 @@ describe('Asset Management', function () {
 
             it('reverts', async () => {
               const ops = [{ kind, poolId, token: tokens.DAI.address, amount: bn(0) }];
-              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SENDER_NOT_ASSET_MANAGER');
+              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith(
+                'BAL#530'
+              );
             });
           });
         });
@@ -619,7 +626,9 @@ describe('Asset Management', function () {
 
             it('reverts', async () => {
               const ops = [{ kind, poolId, token: tokens.DAI.address, amount: bn(0) }];
-              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SENDER_NOT_ASSET_MANAGER');
+              await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith(
+                'BAL#530'
+              );
             });
           });
         });
@@ -667,7 +676,7 @@ describe('Asset Management', function () {
                 ];
 
                 await expect(vault.connect(assetManager).managePoolBalance(ops)).to.be.revertedWith(
-                  'SENDER_NOT_ASSET_MANAGER'
+                  'BAL#530'
                 );
               });
             });
@@ -682,7 +691,7 @@ describe('Asset Management', function () {
                 ];
 
                 await expect(vault.connect(assetManager).managePoolBalance(ops)).to.be.revertedWith(
-                  'TOKEN_NOT_REGISTERED'
+                  'BAL#530'
                 );
               });
             });
@@ -694,9 +703,11 @@ describe('Asset Management', function () {
 
             sharedBeforeEach('deploy other pool and add liquidity', async () => {
               poolIdA = poolId;
+              await vault.connect(admin).setPoolActivated(poolIdA);
 
               const otherPool = await deploy('MockPool', { args: [vault.address, specialization] });
               poolIdB = await otherPool.getPoolId();
+              await vault.connect(admin).setPoolActivated(poolIdB);
 
               // Manage all tokens in Pool B
               const assetManagers = tokens.addresses.map(() => assetManager.address);
@@ -823,7 +834,7 @@ describe('Asset Management', function () {
                 ];
 
                 await expect(vault.connect(assetManager).managePoolBalance(ops)).to.be.revertedWith(
-                  'SENDER_NOT_ASSET_MANAGER'
+                  'BAL#530'
                 );
               });
             });

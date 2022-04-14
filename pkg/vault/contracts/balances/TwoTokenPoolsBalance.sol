@@ -304,9 +304,14 @@ abstract contract TwoTokenPoolsBalance is PoolRegistry {
      * - `token` must be registered in the Pool
      */
     function _getTwoTokenPoolBalance(bytes32 poolId, IERC20 token) internal view returns (bytes32) {
+
         // We can't just read the balance of token, because we need to know the full pair in order to compute the pair
         // hash and access the balance mapping. We therefore rely on `_getTwoTokenPoolBalances`.
         (, IERC20 tokenA, bytes32 balanceA, IERC20 tokenB, bytes32 balanceB) = _getTwoTokenPoolBalances(poolId);
+
+//        console.log("balanceA %s", uint(balanceA));
+//        console.log("balanceB %s", uint(balanceB));
+//        console.log("token %s", address(token));
 
         if (token == tokenA) {
             return balanceA;
@@ -365,6 +370,7 @@ abstract contract TwoTokenPoolsBalance is PoolRegistry {
             // The tokens might not be registered because the Pool itself is not registered. We check this to provide a
             // more accurate revert reason.
             _ensureRegisteredPool(poolId);
+            _ensureActivatedPool(poolId);
             _revert(Errors.TOKEN_NOT_REGISTERED);
         }
 

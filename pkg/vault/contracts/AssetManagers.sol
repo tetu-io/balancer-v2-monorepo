@@ -40,7 +40,7 @@ abstract contract AssetManagers is
     // Stores the Asset Manager for each token of each Pool.
     mapping(bytes32 => mapping(IERC20 => address)) internal _poolAssetManagers;
 
-    function managePoolBalance(PoolBalanceOp[] memory ops) external override nonReentrant whenNotPaused {
+    function managePoolBalance(PoolBalanceOp[] memory ops) external override whenNotPaused {
         // This variable could be declared inside the loop, but that causes the compiler to allocate memory on each
         // loop iteration, increasing gas costs.
         PoolBalanceOp memory op;
@@ -51,10 +51,10 @@ abstract contract AssetManagers is
 
             bytes32 poolId = op.poolId;
             _ensureRegisteredPool(poolId);
-
+            _ensureActivatedPool(poolId);
             IERC20 token = op.token;
-            _require(_isTokenRegistered(poolId, token), Errors.TOKEN_NOT_REGISTERED);
-            _require(_poolAssetManagers[poolId][token] == msg.sender, Errors.SENDER_NOT_ASSET_MANAGER);
+            _require(_poolAssetManagers[poolId][token] == msg.sender,
+                    Errors.SENDER_NOT_ASSET_MANAGER_OR_TOKEN_NOT_REGISTERED);
 
             PoolBalanceOpKind kind = op.kind;
             uint256 amount = op.amount;
@@ -171,20 +171,5 @@ abstract contract AssetManagers is
         }
 
         cashDelta = 0;
-    }
-
-    /**
-     * @dev Returns true if `token` is registered for `poolId`.
-     */
-    function _isTokenRegistered(bytes32 poolId, IERC20 token) private view returns (bool) {
-        PoolSpecialization specialization = _getPoolSpecialization(poolId);
-        if (specialization == PoolSpecialization.TWO_TOKEN) {
-            return _isTwoTokenPoolTokenRegistered(poolId, token);
-        } else if (specialization == PoolSpecialization.MINIMAL_SWAP_INFO) {
-            return _isMinimalSwapInfoPoolTokenRegistered(poolId, token);
-        } else {
-            // PoolSpecialization.GENERAL
-            return _isGeneralPoolTokenRegistered(poolId, token);
-        }
     }
 }
