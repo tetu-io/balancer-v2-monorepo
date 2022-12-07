@@ -90,7 +90,7 @@ abstract contract LinearPoolRebalancer {
         return _rebalance(recipient);
     }
 
-    function _rebalance(address recipient) private returns (uint256) {
+    function _rebalance(address recipient) internal virtual returns (uint256) {
         // The first thing we need to test is whether the Pool is below or above the target level, which will
         // determine whether we need to deposit or withdraw main tokens.
         uint256 desiredMainTokenBalance = _getDesiredMainTokenBalance();
@@ -109,7 +109,11 @@ abstract contract LinearPoolRebalancer {
         }
     }
 
-    function _rebalanceLackOfMainToken(uint256 missingMainAmount, address recipient) private returns (uint256) {
+    function _rebalanceLackOfMainToken(uint256 missingMainAmount, address recipient)
+        internal
+        virtual
+        returns (uint256)
+    {
         // The Pool needs to increase the main token balance, so we prepare a swap where we provide the missing main
         // token amount in exchange for wrapped tokens, that is, the main token is the token in. Since we know this
         // amount, this is a 'given in' swap.
@@ -146,7 +150,11 @@ abstract contract LinearPoolRebalancer {
         return reward;
     }
 
-    function _rebalanceExcessOfMainToken(uint256 excessMainAmount, address recipient) private returns (uint256) {
+    function _rebalanceExcessOfMainToken(uint256 excessMainAmount, address recipient)
+        internal
+        virtual
+        returns (uint256)
+    {
         // The Pool needs to reduce its main token balance, so we do a swap where we take the excess main token amount
         // and send wrapped tokens in exchange, that is, the main token is the token out. Since we know this amount,
         // this is a 'given out' swap.
@@ -185,7 +193,7 @@ abstract contract LinearPoolRebalancer {
         return reward;
     }
 
-    function _withdrawFromPool(IERC20 token, uint256 amount) private {
+    function _withdrawFromPool(IERC20 token, uint256 amount) internal virtual {
         // Tokens can be withdrawn from the Vault with a 'withdraw' operation, but that will create 'managed' balance
         // and leave the 'total' balance unchanged. We therefore have to perform two operations: one to withdraw, and
         // another to clear the 'managed' balance (as the tokens withdrawn are about to be wrapped or unwrapped, and
@@ -207,7 +215,7 @@ abstract contract LinearPoolRebalancer {
         _vault.managePoolBalance(withdrawal);
     }
 
-    function _depositToPool(IERC20 token, uint256 amount) private {
+    function _depositToPool(IERC20 token, uint256 amount) internal virtual {
         // Tokens can be deposited to the Vault with a 'deposit' operation, but that requires a prior 'managed'
         // balance to exist. We therefore have to perform two operations: one to set the 'managed' balance (representing
         // the new tokens that resulted from wrapping or unwrapping and which we are managing for the Pool), and
@@ -232,7 +240,7 @@ abstract contract LinearPoolRebalancer {
         _vault.managePoolBalance(deposit);
     }
 
-    function _getDesiredMainTokenBalance() private view returns (uint256) {
+    function _getDesiredMainTokenBalance() internal view virtual returns (uint256) {
         // The desired main token balance is the midpoint of the lower and upper targets. Keeping the balance
         // close to that value maximizes Pool swap volume by allowing zero-fee swaps in either direction.
         (uint256 lowerTarget, uint256 upperTarget) = _pool.getTargets();

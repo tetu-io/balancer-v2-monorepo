@@ -58,4 +58,37 @@ contract TetuLinearPoolRebalancer is LinearPoolRebalancer {
         // wrappedAmount * pricePerFullShare / 10^decimals
         return wrappedAmount.mul(ITetuSmartVault(address(_wrappedToken)).getPricePerFullShare()).divUp(_divisor);
     }
+
+    function _rebalanceExcessOfMainToken(uint256 excessMainAmount, address recipient)
+        internal
+        override
+        returns (uint256)
+    {
+        // This method is the same except of 'tokensReceived' used instead of value from _getRequiredTokensToWrap
+        // because TetuSmartVault round value for PPFS calculation and real amount of wrapped tokens slightly different.
+
+        IVault.SingleSwap memory swap = IVault.SingleSwap({
+            poolId: _poolId,
+            kind: IVault.SwapKind.GIVEN_OUT,
+            assetIn: IAsset(address(_wrappedToken)),
+            assetOut: IAsset(address(_mainToken)),
+            amount: excessMainAmount,
+            userData: ""
+        });
+
+        IVault.FundManagement memory funds;
+        uint256 wrappedAmountIn = _queries.querySwap(swap, funds);
+
+        _withdrawFromPool(_mainToken, excessMainAmount);
+
+        _wrapTokens(_getRequiredTokensToWrap(wrappedAmountIn));
+
+        // tokensReceived is used to deposit real amount of wrapped tokens instead of wrappedAmountIn.
+        uint256 tokensReceived = _wrappedToken.balanceOf(address(this));
+        _depositToPool(_wrappedToken, tokensReceived);
+
+        uint256 reward = _mainToken.balanceOf(address(this));
+        _mainToken.safeTransfer(recipient, reward);
+        return reward;
+    }
 }
